@@ -1,6 +1,10 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
+import os
+from enum import Enum
+from dotenv import load_dotenv
+
 import jwt
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -20,6 +24,7 @@ fake_users_db = {
         "email" : "janedoe@relay.com",
         "hashed_password" : "$argon2id$v=19$m=65536,t=3,p=4$wagCPXjifgvUFBzq4hqe3w$CYaIb8sB+wtD+Vu/P4uod1+Qof8h+1g7bbDlBID48Rc",
         "disabled" : False,
+        "role" : "Nurse",
     },
     "alice" : {
         "username" : "alice",
@@ -27,6 +32,7 @@ fake_users_db = {
         "email" : "alice@relay.com",
         "hashed_password" : "$argon2id$v=19$m=65536,t=3,p=4$wagCPXjifgvUFBzq4hqe3w$CYaIb8sB+wtD+Vu/P4uod1+Qof8h+1g7bbDlBID48Rc",
         "disabled" : True,
+        "role" : "HCA",
     },
 }
 
@@ -42,12 +48,17 @@ app = FastAPI()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl = "token")
 
+class Role(str, Enum):
+    NURSE = "Nurse"
+    HCA = "HCA"
+
 
 class User(BaseModel):
     username: str
     email: str | None = None
     full_name : str | None = None
     disabled: bool | None = None
+    role : Role
 
 
 class UserInDB(User):
@@ -134,13 +145,8 @@ async def login_for_access_token(
     )
     return Token(access_token=access_token, token_type="bearer")
 
-@app.get("/users/me")
+@app.get("/users/me", response_model=User)
 async def read_users_me(
         current_user: Annotated[User, Depends(get_current_active_user)],
 ):
     return current_user
-
-
-@app.get("/items/")
-async def read_items(token: Annotated[str, Depends(oauth2_scheme)]):
-    return {"token": token}

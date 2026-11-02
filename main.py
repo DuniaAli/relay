@@ -2,7 +2,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 import os
-from enum import Enum
 from dotenv import load_dotenv
 
 import jwt
@@ -10,7 +9,7 @@ from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
-from pydantic import BaseModel
+from models import Token, TokenData, Role, User, UserInDB
 
 
 load_dotenv()
@@ -38,33 +37,12 @@ fake_users_db = {
     },
 }
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
 
-class TokenData(BaseModel):
-    username: str | None = None
 
 
 app = FastAPI()
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl = "token")
-
-class Role(str, Enum):
-    NURSE = "Nurse"
-    HCA = "HCA"
-
-
-class User(BaseModel):
-    username: str
-    email: str | None = None
-    full_name : str | None = None
-    disabled: bool | None = None
-    role : Role
-
-
-class UserInDB(User):
-    hashed_password: str
 
 password_hash = PasswordHash.recommended()
 
